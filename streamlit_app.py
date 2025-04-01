@@ -70,11 +70,11 @@ if ingredients_list:
         else:
             st.error(f"No se pudo obtener info para {fruit_chosen} 😢")
 
-# ✅ Botón para enviar la orden
+# ✅ Botón para enviar la orden (sin .strip())
 if st.button('Submit Order'):
     my_insert_stmt = f"""
         INSERT INTO smoothies.public.orders(ingredients, name_on_order)
-        VALUES ('{ingredients_string.strip()}', '{name_on_order}')
+        VALUES ('{ingredients_string}', '{name_on_order}')
     """
     session.sql(my_insert_stmt).collect()
     st.success('Your Smoothie is ordered! ✅')
