@@ -31,18 +31,15 @@ st.write("The name on your Smoothie will be:", name_on_order)
 
 # 📦 Obtener lista de frutas desde Snowflake
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
-#st.dataframe(data=my_dataframe, use_container_width=True)
-st.stop()
 
-# Convert the snowpark dataframe to pandas dataframe so we can use the LOC function
-pd_df=my_dataframe.to_pandas()
-st.dataframe(pd_df)
-st.stop()
+# Convertir Snowpark DataFrame a Pandas
+pd_df = my_dataframe.to_pandas()
+st.dataframe(pd_df, use_container_width=True)
 
 # 🥝 Selección de ingredientes
 ingredients_list = st.multiselect(
     'Elige hasta 5 ingredientes:',
-    my_dataframe,
+    pd_df['FRUIT_NAME'].tolist(),
     max_selections=5
 )
 
@@ -52,14 +49,26 @@ if ingredients_list:
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + ' '
         
-        search_on=pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
-        st.write('The search value for ', fruit_chosen,' is ', search_on, '.')
-        
-        st.subheader(fruit_chosen + ' Nutrition Information')
-        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
-        # st.text(smoothiefroot_response.json())
-        st_df= st.dataframe (data=smoothiefroot_response.json(), use_container_width=True)
-    # st.write("Tu Smoothie llevará:", ingredients_string)
+        # Obtener el valor de búsqueda para API
+        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        st.write(f'The search value for {fruit_chosen} is {search_on}.')
+
+        # Llamada a la API externa y visualización de info nutricional
+        st.subheader(f"{fruit_chosen} Nutrition Information")
+        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
+
+        if response.status_code == 200:
+            try:
+                fruit_info = response.json()
+                if isinstance(fruit_info, dict):
+                    df_info = pd.DataFrame([fruit_info])
+                    st.dataframe(df_info, use_container_width=True)
+                else:
+                    st.write(fruit_info)
+            except Exception as e:
+                st.error(f"Error al procesar respuesta de la API: {e}")
+        else:
+            st.error(f"No se pudo obtener info para {fruit_chosen} 😢")
 
 # ✅ Botón para enviar la orden
 if st.button('Submit Order'):
@@ -71,11 +80,17 @@ if st.button('Submit Order'):
     st.success('Your Smoothie is ordered! ✅')
 
 # -------------------------------
-# 🍉 Mostrar info externa de Smoothiefroot API
+# 🍉 Mostrar info externa extra (por default: watermelon)
 # -------------------------------
 st.markdown("---")
-st.subheader("🍉 Info rápida desde Smoothiefroot API")
+st.subheader("🍉 Ejemplo de API: Watermelon Info")
 
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-# st.text(smoothiefroot_response.json())
-st_df= st.dataframe (data=smoothiefroot_response.json(), use_container_width=True)
+example_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+if example_response.status_code == 200:
+    example_data = example_response.json()
+    if isinstance(example_data, dict):
+        st.dataframe(pd.DataFrame([example_data]), use_container_width=True)
+    else:
+        st.write(example_data)
+else:
+    st.error("No se pudo obtener la info de watermelon 🍉")
