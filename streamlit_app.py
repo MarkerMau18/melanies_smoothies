@@ -1,5 +1,6 @@
 # Importar paquetes
 import streamlit as st
+import pandas as pd
 from snowflake.snowpark import Session
 from snowflake.snowpark.functions import col
 import requests
